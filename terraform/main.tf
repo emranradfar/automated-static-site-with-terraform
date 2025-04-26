@@ -5,7 +5,7 @@ provider "aws" {
 }
 
 resource "aws_s3_bucket" "static_site" {
-  bucket = "addbucketnameherewhencreated"  # add bucket name
+  bucket = var.bucket_name #use variable for bucket name, good for reusabiltiy.
 
   website {
     index_document = "index.html"
@@ -14,18 +14,29 @@ resource "aws_s3_bucket" "static_site" {
   }
 }
 
+resource "aws_s3_bucket_policy" "public_read" {
+  bucket = var.bucket_name
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Sid       = "PublicReadGetObject",
+        Effect    = "Allow",
+        Principal = "*",
+        Action    = "s3:GetObject",
+        Resource  = "arn:aws:s3:::${var.bucket_name}/*"
+      }
+    ]
+  })
+}
+
 # Upload the index.html file to the bucket
 resource "aws_s3_bucket_object" "index_html" {
   bucket = aws_s3_bucket.static_site.bucket
   key    = "index.html"
   source = "../site/index.html"  # Path to local index.html file
   acl    = "public-read"
-}
-
-# Apply the bucket policy using JSON file
-resource "aws_s3_bucket_policy" "bucket_policy" {
-  bucket = aws_s3_bucket.static_site.bucket
-  policy = file("../site/bucketpolicy.json")  # Load JSON policy
 }
 
 # Allow public access by disabling public access blocks
